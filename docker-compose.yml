@@ -1,6 +1,7 @@
-version: '3'
+version: '3.3'
 
 services:
   webp_bot:
     build: ./
     env_file: .env
+    restart: always

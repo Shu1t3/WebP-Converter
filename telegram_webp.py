@@ -1,6 +1,7 @@
 import os
 from io import BytesIO
 import asyncio
+import logging
 
 from PIL import Image
 
@@ -11,6 +12,7 @@ from aiogram.types import BufferedInputFile
 from dotenv import load_dotenv
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
 
 
 bot = Bot(token=os.getenv('TOKEN'))
