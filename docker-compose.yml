@@ -2,6 +2,6 @@ version: '3.3'
 
 services:
   webp_bot:
-    build: ./
+    image: shu1t3/webp_converter:latest
     env_file: .env
     restart: always
