@@ -4,44 +4,21 @@ import asyncio
 import logging
 
 from PIL import Image
-
-from aiogram import F
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters.command import Command
 from aiogram.types import BufferedInputFile
+from aiogram import F
 from dotenv import load_dotenv
+
+from utils.webp.converter import convert
+from utils.webm.converter import generate_webm
+
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
-
-
 bot = Bot(token=os.getenv('TOKEN'))
 dp = Dispatcher()
 
 
-async def convert(io_data: BytesIO) -> BytesIO:
-    # Чтение байтов данных из объекта BytesIO
-    pic = io_data.read()
-    # Открываем изображение из байтовых данных и меняем размер и качество
-    img = Image.open(BytesIO(pic))
-    img = img.resize((512, 512))
-    quality = 95
-    out = BytesIO()
-    # Сжимаем изображение и сохраняем в формате WebP
-    img.save(out, 'WEBP', quality=quality)
-    # Проверяем размер файла и уменьшаем качество, пока не уложимся в 64 КБ
-    while out.tell() > 64 * 1024:  # Проверяем размер данных в BytesIO объекте, если много уменьшаем
-        quality -= 1
-        # Сбрасываем указатель записи в начало объекта BytesIO и очищаем данные в объекте BytesIO
-        out.seek(0)
-        out.truncate(0)
-        img.save(out, 'WEBP', quality=quality)
-    # Возвращаем указатель чтения в начало объекта BytesIO
-    out.seek(0)
-    return out
-
-
-@dp.message(Command('start'))
 async def start_cmd(message: types.Message):
     await message.answer('Отправьте изображения. Чем "квадратней", тем лучше! :)')
 
@@ -60,9 +37,31 @@ async def get_photo_conver_webp(message: types.Message, bot: Bot):
         await message.answer("Обрабатываю изображения, подождите...")
         # Этот блок конвертирует изображение и генерирует объект для отправки
         converted_photo = await convert(downloaded_photo)
-        input_file = BufferedInputFile(converted_photo.getvalue(), filename='image.webp')
+        input_file = BufferedInputFile(
+            converted_photo.getvalue(), filename='image.webp'
+        )
         # Отправляем готовый шаблон-стикер
         await message.answer_document(input_file, caption='Готовый WebP')
+
+
+@dp.message(F.video)
+async def get_video_conver_webm(message: types.Message, bot: Bot):
+    video = message.video.file_id
+
+    if video:
+        get_video = await bot.get_file(video)
+        video_path = get_video.file_path
+        downloaded_video = await bot.download_file(video_path, BytesIO())
+
+        await message.answer(f'Размер файла - {get_video.file_size}')
+        await message.answer("Обрабатываю видео, подождите...")
+
+        if downloaded_video:
+            new_video_sticker = await generate_webm(video_data=downloaded_video)
+            input_file = BufferedInputFile(
+                new_video_sticker.getvalue(), filename='sticker.webm'
+            )
+            await message.answer_document(input_file, caption='Готовый видеостикер!')
 
 
 async def main():
